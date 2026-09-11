@@ -1,0 +1,40 @@
+node_modules/
+dist/
+build/
+coverage/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Database & backups
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+/apps/server/data/
+/deploy/backups/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# iOS build artifacts (Xcode project itself is committed)
+apps/web/ios/App/Pods/
+apps/web/ios/App/build/
+apps/web/ios/App/DerivedData/
+*.ipa
+*.xcarchive
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Vite / PWA
+apps/web/dist/
+apps/web/dev-dist/

@@ -1,0 +1,10 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+
+# strictDepBuilds mặc định true từ pnpm 11: chỉ các gói dưới đây được
+# phép chạy build/postinstall script khi `pnpm install`.
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+  sharp: true

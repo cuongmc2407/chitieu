@@ -8,8 +8,8 @@ export class ApiError extends Error {
   }
 }
 
-function baseUrl(): string {
-  const url = getServerUrl();
+async function baseUrl(): Promise<string> {
+  const url = await getServerUrl();
   return url ? url.replace(/\/$/, "") : "";
 }
 
@@ -19,14 +19,14 @@ function baseUrl(): string {
  * throws ApiError with the server's Vietnamese error message on failure.
  */
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getToken();
+  const token = await getToken();
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init.body !== undefined && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
-  const res = await fetch(`${baseUrl()}${path}`, { ...init, headers, credentials: "include" });
+  const res = await fetch(`${await baseUrl()}${path}`, { ...init, headers, credentials: "include" });
 
-  if (res.status === 401) setLoggedInFlag(false);
+  if (res.status === 401) void setLoggedInFlag(false);
 
   if (!res.ok) {
     let message = `Lỗi ${res.status}`;
@@ -58,6 +58,6 @@ export function apiDelete<T>(path: string): Promise<T> {
   return apiFetch<T>(path, { method: "DELETE" });
 }
 
-export function resolveUrl(path: string): string {
-  return `${baseUrl()}${path}`;
+export async function resolveUrl(path: string): Promise<string> {
+  return `${await baseUrl()}${path}`;
 }

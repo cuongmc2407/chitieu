@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useCurrentUser, useLogout, useUpdateMe } from "../hooks/useAuth";
 import { useRevokeSession, useSessions } from "../hooks/useSessions";
 import { resolveUrl } from "../lib/apiClient";
 import { getServerUrl, getToken, setServerUrl } from "../lib/auth";
-
-const IS_APP = typeof window !== "undefined" && "Capacitor" in window;
+import { isNative } from "../lib/native";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -14,14 +13,18 @@ export default function Settings() {
   const updateMe = useUpdateMe();
   const { data: sessions } = useSessions();
   const revoke = useRevokeSession();
-  const [serverUrl, setServerUrlState] = useState(getServerUrl());
+  const [serverUrl, setServerUrlState] = useState("");
   const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    getServerUrl().then(setServerUrlState);
+  }, []);
 
   async function exportCsv(): Promise<void> {
     setExporting(true);
     try {
-      const token = getToken();
-      const res = await fetch(resolveUrl("/api/export.csv"), {
+      const token = await getToken();
+      const res = await fetch(await resolveUrl("/api/export.csv"), {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -55,7 +58,7 @@ export default function Settings() {
         </div>
       )}
 
-      {IS_APP && (
+      {isNative && (
         <div className="mt-4">
           <h2 className="px-1 text-sm font-semibold text-slate-500 dark:text-slate-400">Địa chỉ server</h2>
           <div className="mt-2 flex gap-2">
@@ -65,7 +68,7 @@ export default function Settings() {
               placeholder="https://chitieu.cuongmc.id.vn"
               className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             />
-            <button onClick={() => setServerUrl(serverUrl)} className="rounded-xl bg-teal-600 px-4 text-sm font-medium text-white">
+            <button onClick={() => void setServerUrl(serverUrl)} className="rounded-xl bg-teal-600 px-4 text-sm font-medium text-white">
               Lưu
             </button>
           </div>

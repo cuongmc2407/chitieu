@@ -25,6 +25,11 @@ pnpm-debug.log*
 apps/web/ios/App/Pods/
 apps/web/ios/App/build/
 apps/web/ios/App/DerivedData/
+apps/web/ios/App/Payload/
+apps/web/dist-ios/
+# `cap sync` recopies dist/ here before every build (CI does this itself) —
+# no need to version a snapshot of the web bundle inside the native project.
+apps/web/ios/App/App/public/
 *.ipa
 *.xcarchive
 

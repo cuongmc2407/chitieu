@@ -1,70 +1,85 @@
+import { Preferences } from "@capacitor/preferences";
+import { isNative } from "./native";
+
 /**
- * Session storage abstraction. On the web (this stage) sessions are
- * cookie-based and this module mostly just remembers "am I logged in" for
- * instant UI state; the actual credential is an httpOnly cookie the browser
- * manages on its own. The pairing-code fallback stores a bearer token here
- * too — that's the SAME code path the iOS app (Capacitor) will use in a
- * later stage, just swapping localStorage for Capacitor Preferences behind
- * this same get/set/clear interface.
+ * Session storage abstraction. On the web (cookie-based sessions) this is
+ * mostly just a local "am I logged in" flag; the actual credential is an
+ * httpOnly cookie the browser manages on its own. In the iOS app there is
+ * no cookie jar shared with a browser, so the pairing-code login stores a
+ * real bearer token here — using Capacitor Preferences (durable native
+ * storage) instead of localStorage. Every read/write goes through this one
+ * module so callers never need to know which backend is in play.
  */
 
 const TOKEN_KEY = "chitieu:token";
 const SERVER_URL_KEY = "chitieu:serverUrl";
 const LOGGED_IN_KEY = "chitieu:loggedIn";
 
-export function getToken(): string | null {
+async function storageGet(key: string): Promise<string | null> {
+  if (isNative) {
+    const { value } = await Preferences.get({ key });
+    return value;
+  }
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-export function setToken(token: string | null): void {
+async function storageSet(key: string, value: string): Promise<void> {
+  if (isNative) {
+    await Preferences.set({ key, value });
+    return;
+  }
   try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
+    localStorage.setItem(key, value);
   } catch {
     // storage unavailable (private mode, etc.) — auth still works via cookie for this session.
   }
 }
 
-/** A cheap local flag so the UI can skip straight to "logged in" on reload instead of flashing the login screen. */
-export function getLoggedInFlag(): boolean {
-  try {
-    return localStorage.getItem(LOGGED_IN_KEY) === "1";
-  } catch {
-    return false;
+async function storageRemove(key: string): Promise<void> {
+  if (isNative) {
+    await Preferences.remove({ key });
+    return;
   }
-}
-
-export function setLoggedInFlag(loggedIn: boolean): void {
   try {
-    if (loggedIn) localStorage.setItem(LOGGED_IN_KEY, "1");
-    else localStorage.removeItem(LOGGED_IN_KEY);
+    localStorage.removeItem(key);
   } catch {
     // ignore
   }
+}
+
+export async function getToken(): Promise<string | null> {
+  return storageGet(TOKEN_KEY);
+}
+
+export async function setToken(token: string | null): Promise<void> {
+  if (token) await storageSet(TOKEN_KEY, token);
+  else await storageRemove(TOKEN_KEY);
+}
+
+/** A cheap local flag so the UI can skip straight to "logged in" on reload instead of flashing the login screen. */
+export async function getLoggedInFlag(): Promise<boolean> {
+  return (await storageGet(LOGGED_IN_KEY)) === "1";
+}
+
+export async function setLoggedInFlag(loggedIn: boolean): Promise<void> {
+  if (loggedIn) await storageSet(LOGGED_IN_KEY, "1");
+  else await storageRemove(LOGGED_IN_KEY);
 }
 
 /** Server address — only ever shown/editable in the iOS app; the web build always talks to its own origin. */
-export function getServerUrl(): string {
-  try {
-    return localStorage.getItem(SERVER_URL_KEY) ?? "";
-  } catch {
-    return "";
-  }
+export async function getServerUrl(): Promise<string> {
+  return (await storageGet(SERVER_URL_KEY)) ?? "";
 }
 
-export function setServerUrl(url: string): void {
-  try {
-    localStorage.setItem(SERVER_URL_KEY, url.trim());
-  } catch {
-    // ignore
-  }
+export async function setServerUrl(url: string): Promise<void> {
+  await storageSet(SERVER_URL_KEY, url.trim());
 }
 
-export function clearSession(): void {
-  setToken(null);
-  setLoggedInFlag(false);
+export async function clearSession(): Promise<void> {
+  await setToken(null);
+  await setLoggedInFlag(false);
 }

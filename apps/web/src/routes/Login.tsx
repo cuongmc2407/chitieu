@@ -20,6 +20,11 @@ export default function Login() {
   const [pairCode, setPairCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sessionCheck, setSessionCheck] = useState<"checking" | "logged-in" | "logged-out">("checking");
+
+  useEffect(() => {
+    getLoggedInFlag().then((loggedIn) => setSessionCheck(loggedIn ? "logged-in" : "logged-out"));
+  }, []);
 
   useEffect(() => {
     apiGet<PublicConfig>("/api/public-config")
@@ -34,10 +39,8 @@ export default function Login() {
       setLoading(true);
       setError(null);
       apiPost("/api/auth/telegram", user)
-        .then(() => {
-          setLoggedInFlag(true);
-          navigate("/", { replace: true });
-        })
+        .then(() => setLoggedInFlag(true))
+        .then(() => navigate("/", { replace: true }))
         .catch((err: unknown) => setError(err instanceof Error ? err.message : "Đăng nhập thất bại"))
         .finally(() => setLoading(false));
     };
@@ -59,8 +62,8 @@ export default function Login() {
     setError(null);
     try {
       const result = await apiPost<{ token?: string }>("/api/auth/pair", { code: pairCode, client: "web" });
-      if (result.token) setToken(result.token);
-      setLoggedInFlag(true);
+      if (result.token) await setToken(result.token);
+      await setLoggedInFlag(true);
       navigate("/", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Mã không hợp lệ");
@@ -69,7 +72,8 @@ export default function Login() {
     }
   }
 
-  if (getLoggedInFlag()) return <Navigate to="/" replace />;
+  if (sessionCheck === "checking") return null;
+  if (sessionCheck === "logged-in") return <Navigate to="/" replace />;
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-slate-50 p-6 dark:bg-slate-950">

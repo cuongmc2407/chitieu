@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { initNative } from "./lib/native";
 import { queryClient } from "./lib/queryClient";
 
 const rootEl = document.getElementById("root");
@@ -15,3 +16,5 @@ createRoot(rootEl).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+initNative();

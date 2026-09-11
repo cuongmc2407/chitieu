@@ -6,8 +6,9 @@ import TransactionRow from "../components/TransactionRow";
 import { useCachedCategoriesFallback, useCategories } from "../hooks/useCategories";
 import { useTransactions } from "../hooks/useTransactions";
 import { getCachedOverrides, enqueueOutbox, listOutbox, type OutboxItem } from "../lib/db";
-import { flushOutbox } from "../lib/sync";
 import { dateKey, formatVnd } from "../lib/format";
+import { successHaptic } from "../lib/native";
+import { flushOutbox } from "../lib/sync";
 import type { Category, Transaction } from "../types";
 
 function toCategoryDef(c: Category): CategoryDef {
@@ -81,6 +82,7 @@ export default function QuickEntry() {
       }
       setText("");
       setOverrideCategoryId(null);
+      void successHaptic();
       await refreshPending();
       const result = await flushOutbox();
       if (result.synced > 0) {

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch, apiPost } from "../lib/apiClient";
-import { clearSession, getLoggedInFlag } from "../lib/auth";
+import { clearSession } from "../lib/auth";
 import type { CurrentUser } from "../types";
 
 export function useCurrentUser() {
@@ -8,7 +8,6 @@ export function useCurrentUser() {
     queryKey: ["me"],
     queryFn: () => apiGet<CurrentUser>("/api/auth/me"),
     retry: false,
-    enabled: getLoggedInFlag(),
     staleTime: 5 * 60_000,
   });
 }
@@ -29,7 +28,7 @@ export function useLogout(): () => Promise<void> {
     } catch {
       // best-effort — clear local state regardless
     }
-    clearSession();
+    await clearSession();
     queryClient.clear();
   };
 }

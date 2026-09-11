@@ -37,7 +37,7 @@ COPY --from=build /out/server ./
 COPY --from=build /repo/apps/web/dist ./web-dist
 
 ENV NODE_ENV=production \
-    PORT=3000 \
+    PORT=3333 \
     WEB_DIST_PATH=/app/web-dist \
     DB_PATH=/data/chitieu.db \
     BACKUP_DIR=/data/backups \
@@ -47,10 +47,10 @@ ENV NODE_ENV=production \
 RUN mkdir -p /data && chown -R chitieu:chitieu /data /app
 USER chitieu
 
-EXPOSE 3000
+EXPOSE 3333
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:3333/api/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 # tini làm PID 1 để nhận và chuyển tiếp SIGTERM đúng cách cho Node (tắt êm).
 ENTRYPOINT ["tini", "--"]

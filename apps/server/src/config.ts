@@ -9,7 +9,7 @@ const EnvSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1, "TELEGRAM_BOT_TOKEN là bắt buộc"),
   ALLOWED_TELEGRAM_IDS: z.string().min(1, "ALLOWED_TELEGRAM_IDS là bắt buộc (danh sách Telegram ID, cách nhau bởi dấu phẩy)"),
   PUBLIC_URL: z.string().url().optional(),
-  PORT: z.coerce.number().int().positive().default(3000),
+  PORT: z.coerce.number().int().positive().default(3333),
   TZ: z.string().default("Asia/Ho_Chi_Minh"),
   DB_PATH: z.string().default("./data/chitieu.db"),
   BOT_MODE: z.enum(["polling", "webhook"]).default("polling"),

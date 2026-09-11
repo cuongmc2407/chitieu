@@ -64,8 +64,8 @@ Mở `apps/server/.env`, điền tối thiểu `TELEGRAM_BOT_TOKEN` và
 pnpm dev
 ```
 
-Lệnh này chạy đồng thời server (polling Telegram, cổng 3000) và web dev
-server (Vite, có proxy `/api` sang cổng 3000). Nhắn thử "phở 45k" cho bot,
+Lệnh này chạy đồng thời server (polling Telegram, cổng 3333) và web dev
+server (Vite, có proxy `/api` sang cổng 3333). Nhắn thử "phở 45k" cho bot,
 hoặc mở `http://localhost:5173` cho web, gõ `/ketnoi` trên Telegram để lấy
 mã 6 số đăng nhập web.
 
@@ -93,11 +93,11 @@ docker compose -f deploy/docker-compose.yml up -d
 Kiểm tra:
 
 ```bash
-curl http://127.0.0.1:3000/api/health
+curl http://127.0.0.1:3333/api/health
 docker compose -f deploy/docker-compose.yml logs -f chitieu
 ```
 
-Server chỉ nghe trên `127.0.0.1:3000` (không mở ra Internet trực tiếp) —
+Server chỉ nghe trên `127.0.0.1:3333` (không mở ra Internet trực tiếp) —
 xem [mục 6](#6-cloudflare-tunnel-https-công-khai) để có HTTPS công khai.
 Dữ liệu (SQLite + backup) nằm trong volume Docker `chitieu-data`, sống sót
 qua `docker compose down`/`up` và cập nhật image.
@@ -280,7 +280,7 @@ chitieu`).
 
 **`/api/health` không phản hồi:** container/process có đang chạy không
 (`docker compose ps` / `pm2 status`); nếu chạy Docker, kiểm tra cổng
-`127.0.0.1:3000` có bị process khác chiếm không.
+`127.0.0.1:3333` có bị process khác chiếm không.
 
 **Web đăng nhập bằng Telegram Login Widget không hiện nút:** cần
 `/setdomain` trên BotFather trỏ đúng domain, và domain đó phải chạy

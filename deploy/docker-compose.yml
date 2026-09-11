@@ -12,11 +12,11 @@ services:
     # Chỉ nghe trên localhost — không mở cổng nào ra Internet.
     # Cloudflare Tunnel (chạy trên host hoặc service bên dưới) trỏ vào đây.
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3333:3333"
     volumes:
       - chitieu-data:/data
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/api/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       start_period: 15s

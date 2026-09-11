@@ -17,5 +17,5 @@ credentials-file: /etc/cloudflared/<TUNNEL_UUID_CUA_BAN>.json
 
 ingress:
   - hostname: chitieu.cuongmc.id.vn
-    service: http://localhost:3000
+    service: http://localhost:3333
   - service: http_status:404

@@ -20,8 +20,10 @@ import publicConfigRoutes from "./routes/publicConfig.js";
 import statsRoutes from "./routes/stats.js";
 import transactionsRoutes from "./routes/transactions.js";
 
-// apps/server/src/http/app.ts -> apps/web/dist
-const WEB_DIST = path.resolve(fileURLToPath(new URL("../../../web/dist", import.meta.url)));
+// apps/server/src/http/app.ts -> apps/web/dist — correct when running out of
+// the monorepo (dev, PM2). A deployed package no longer sits next to
+// apps/web, so Docker overrides this via WEB_DIST_PATH.
+const DEFAULT_WEB_DIST = path.resolve(fileURLToPath(new URL("../../../web/dist", import.meta.url)));
 
 const DEV_ORIGIN = "http://localhost:5173";
 const IOS_ORIGIN = "capacitor://localhost";
@@ -72,9 +74,10 @@ export async function buildApp(deps: BotDeps, bot?: Bot<BotContext>): Promise<Fa
     app.post("/telegram/webhook", handleUpdate);
   }
 
-  if (existsSync(WEB_DIST)) {
+  const webDist = deps.config.webDistPath ? path.resolve(deps.config.webDistPath) : DEFAULT_WEB_DIST;
+  if (existsSync(webDist)) {
     await app.register(staticPlugin, {
-      root: WEB_DIST,
+      root: webDist,
       wildcard: false,
       setHeaders: (reply, filePath) => {
         const isEntryPoint = filePath.endsWith("index.html") || filePath.endsWith("sw.js");

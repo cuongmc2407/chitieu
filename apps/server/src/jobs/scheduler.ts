@@ -1,12 +1,15 @@
 import { addDays, dayRange, getZonedParts } from "@chitieu/core";
 import { Cron } from "croner";
 import type { Bot } from "grammy";
+import { InputFile } from "grammy";
 import { buildReportText } from "../bot/format.js";
 import type { BotContext } from "../bot/context.js";
 import type { BotDeps } from "../bot/deps.js";
 import * as notificationsSentRepo from "../db/repos/notificationsSent.js";
 import * as transactionsRepo from "../db/repos/transactions.js";
 import * as usersRepo from "../db/repos/users.js";
+import { runActualSync } from "../domain/actualSync.js";
+import { createBackup, gzipFile } from "../domain/backup.js";
 import { buildBudgetProgress, buildPeriodReport } from "../domain/reports.js";
 
 function pad2(n: number): string {
@@ -76,20 +79,53 @@ export async function runDailyReminders(bot: Bot<BotContext>, deps: BotDeps, now
   }
 }
 
+/** Daily SQLite backup, pruned to the last N. Optionally gzips and sends a copy to a Telegram chat. */
+export async function runBackupJob(bot: Bot<BotContext>, deps: BotDeps): Promise<void> {
+  try {
+    const file = await createBackup(deps.db, deps.config.backup.dir, deps.config.backup.keep);
+    deps.logger.info({ file }, "Đã sao lưu database");
+
+    if (deps.config.backup.telegramChatId) {
+      const gzPath = `${file}.gz`;
+      try {
+        await gzipFile(file, gzPath);
+        await bot.api.sendDocument(deps.config.backup.telegramChatId, new InputFile(gzPath));
+      } catch (err) {
+        deps.logger.error({ err }, "Không gửi được bản sao lưu qua Telegram");
+      }
+    }
+  } catch (err) {
+    deps.logger.error({ err }, "Sao lưu database thất bại");
+  }
+}
+
 export interface SchedulerHandle {
   stop(): void;
 }
 
-/** Wires the three recurring jobs to croner, running in `config.timeZone`. */
+/** Wires every recurring job: cron-based reports/reminders/backup, plus a fixed-interval Actual Budget sync. */
 export function startScheduler(bot: Bot<BotContext>, deps: BotDeps): SchedulerHandle {
   const jobs = [
     new Cron(deps.config.weeklyReportCron, { timezone: deps.config.timeZone, protect: true, catch: true }, () => runWeeklyReports(bot, deps)),
     new Cron(deps.config.monthlyReportCron, { timezone: deps.config.timeZone, protect: true, catch: true }, () => runMonthlyReports(bot, deps)),
     new Cron(deps.config.dailyReminderCron, { timezone: deps.config.timeZone, protect: true, catch: true }, () => runDailyReminders(bot, deps)),
+    new Cron(deps.config.backup.cron, { timezone: deps.config.timeZone, protect: true, catch: true }, () => runBackupJob(bot, deps)),
   ];
+
+  let actualSyncTimer: NodeJS.Timeout | undefined;
+  if (deps.config.actual.enabled) {
+    const intervalMs = deps.config.actual.syncIntervalMin * 60_000;
+    const tick = () => {
+      void runActualSync(deps.db, deps.config, deps.logger);
+    };
+    tick(); // sync once on startup instead of waiting a full interval
+    actualSyncTimer = setInterval(tick, intervalMs);
+  }
+
   return {
     stop: () => {
       for (const job of jobs) job.stop();
+      if (actualSyncTimer) clearInterval(actualSyncTimer);
     },
   };
 }

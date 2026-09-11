@@ -1,10 +1,13 @@
 import { zonedToUtc } from "@chitieu/core";
 import { Cron } from "croner";
-import { describe, expect, it } from "vitest";
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as categoriesRepo from "../src/db/repos/categories.js";
 import * as transactionsRepo from "../src/db/repos/transactions.js";
 import * as usersRepo from "../src/db/repos/users.js";
-import { runDailyReminders, runMonthlyReports, runWeeklyReports } from "../src/jobs/scheduler.js";
+import { runBackupJob, runDailyReminders, runMonthlyReports, runWeeklyReports } from "../src/jobs/scheduler.js";
 import { createTestDb, createTestDeps, seedUser } from "./setup.js";
 import { createTestBot } from "./testBot.js";
 
@@ -120,5 +123,42 @@ describe("runDailyReminders", () => {
     expect(chatIds).toContain(quiet.telegramId);
     expect(chatIds).not.toContain(active.telegramId);
     expect(chatIds).not.toContain(optedOut.telegramId);
+  });
+});
+
+describe("runBackupJob", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "chitieu-backup-job-"));
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("writes a backup file and does not touch Telegram when no chat id is configured", async () => {
+    const db = createTestDb();
+    const deps = createTestDeps({ backup: { dir, cron: "0 3 * * *", telegramChatId: undefined, keep: 30 } }, db);
+    const { bot, calls } = createTestBot(deps);
+
+    await runBackupJob(bot, deps);
+
+    expect(readdirSync(dir).filter((f) => f.endsWith(".db"))).toHaveLength(1);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("gzips and sends the backup to Telegram when a chat id is configured", async () => {
+    const db = createTestDb();
+    const deps = createTestDeps({ backup: { dir, cron: "0 3 * * *", telegramChatId: 999, keep: 30 } }, db);
+    const { bot, callsOf } = createTestBot(deps);
+
+    await runBackupJob(bot, deps);
+
+    const gz = readdirSync(dir).find((f) => f.endsWith(".db.gz"));
+    expect(gz).toBeDefined();
+    expect(existsSync(path.join(dir, gz!))).toBe(true);
+
+    const sent = callsOf("sendDocument");
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.payload.chat_id).toBe(999);
   });
 });

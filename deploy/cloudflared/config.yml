@@ -1,0 +1,21 @@
+# Mẫu cấu hình cho Cloudflare Tunnel kiểu "locally-managed".
+# Copy vào ~/.cloudflared/config.yml (hoặc chỉ định qua --config) trên server,
+# sửa "tunnel" và "credentials-file" theo Tunnel bạn đã tạo bằng:
+#   cloudflared tunnel login
+#   cloudflared tunnel create chitieu
+#
+# Rồi trỏ DNS: cloudflared tunnel route dns chitieu chitieu.cuongmc.id.vn
+# Chạy: cloudflared tunnel run chitieu   (hoặc cài làm service: cloudflared service install)
+#
+# QUAN TRỌNG: KHÔNG đặt Cloudflare Access (hay bất kỳ lớp xác thực nào của
+# Cloudflare) trước domain này — app iOS gọi thẳng /api/* bằng Bearer token,
+# không đi qua trình duyệt nên không "đăng nhập" được với Cloudflare Access.
+# Việc xác thực người dùng đã do chính app (Telegram Login / mã ghép nối) lo.
+
+tunnel: <TUNNEL_UUID_CUA_BAN>
+credentials-file: /etc/cloudflared/<TUNNEL_UUID_CUA_BAN>.json
+
+ingress:
+  - hostname: chitieu.cuongmc.id.vn
+    service: http://localhost:3000
+  - service: http_status:404

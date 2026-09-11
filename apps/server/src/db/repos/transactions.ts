@@ -318,3 +318,19 @@ export function reassignCategory(db: Db, userId: number, fromCategoryId: string,
     .run(toCategoryId, new Date().toISOString(), userId, fromCategoryId);
   return info.changes;
 }
+
+/** Rows never synced to Actual Budget, or edited/deleted since their last sync — includes soft-deleted rows on purpose. */
+export function listPendingActualSync(db: Db, userId: number): TransactionRow[] {
+  const rows = db
+    .prepare(
+      `SELECT ${SELECT_COLUMNS} FROM transactions
+       WHERE user_id = ? AND (actual_synced_at IS NULL OR updated_at > actual_synced_at)
+       ORDER BY created_at`,
+    )
+    .all(userId) as RawTxRow[];
+  return rows.map(mapTx);
+}
+
+export function markActualSynced(db: Db, userId: number, id: string, syncedAtIso: string): void {
+  db.prepare("UPDATE transactions SET actual_synced_at = ? WHERE user_id = ? AND id = ?").run(syncedAtIso, userId, id);
+}

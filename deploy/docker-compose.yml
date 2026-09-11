@@ -1,0 +1,41 @@
+services:
+  chitieu:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: chitieu:latest
+    container_name: chitieu
+    restart: unless-stopped
+    # Cùng một file .env dùng cho cả Docker và PM2 — xem apps/server/.env.example.
+    env_file:
+      - ../apps/server/.env
+    # Chỉ nghe trên localhost — không mở cổng nào ra Internet.
+    # Cloudflare Tunnel (chạy trên host hoặc service bên dưới) trỏ vào đây.
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - chitieu-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  # Tùy chọn: chạy cloudflared trong Docker thay vì cài trực tiếp trên host.
+  # Bỏ comment, điền TUNNEL_TOKEN vào .env (lấy khi tạo Tunnel kiểu
+  # "remotely-managed" trên dash.cloudflare.com), rồi:
+  #   docker compose up -d cloudflared
+  #
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: chitieu-cloudflared
+  #   restart: unless-stopped
+  #   command: tunnel run
+  #   environment:
+  #     TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+  #   depends_on:
+  #     - chitieu
+
+volumes:
+  chitieu-data:

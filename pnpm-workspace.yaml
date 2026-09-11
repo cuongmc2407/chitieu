@@ -2,9 +2,15 @@ packages:
   - "packages/*"
   - "apps/*"
 
-# strictDepBuilds mặc định true từ pnpm 11: chỉ các gói dưới đây được
-# phép chạy build/postinstall script khi `pnpm install`.
+# strictDepBuilds mặc định true từ pnpm 11: mọi gói có build script phải
+# được duyệt (true/false) tường minh ở đây, không thì `pnpm install` báo lỗi.
 allowBuilds:
-  better-sqlite3: true
+  # better-sqlite3 đã đóng gói sẵn file .node cho mọi platform trong
+  # prebuilds/ — không cần (và không nên) chạy node-gyp rebuild, vì máy
+  # dev này không có Python/toolchain để biên dịch native addon.
+  better-sqlite3: false
   esbuild: true
   sharp: true
+
+minimumReleaseAgeExclude:
+  - zod@4.6.2

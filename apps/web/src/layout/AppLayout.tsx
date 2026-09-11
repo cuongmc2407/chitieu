@@ -1,0 +1,24 @@
+import { Navigate, Outlet } from "react-router";
+import TabBar from "../components/TabBar";
+import { useCurrentUser } from "../hooks/useAuth";
+import { useOutboxSync } from "../hooks/useOutboxSync";
+import { getLoggedInFlag } from "../lib/auth";
+
+export default function AppLayout() {
+  const { isError } = useCurrentUser();
+  const { pendingCount } = useOutboxSync();
+
+  if (!getLoggedInFlag() || isError) return <Navigate to="/login" replace />;
+
+  return (
+    <div className="min-h-dvh bg-slate-50 pb-20 dark:bg-slate-950">
+      {pendingCount > 0 && (
+        <div className="pt-safe bg-amber-500 px-4 py-1.5 text-center text-xs font-medium text-white">
+          {pendingCount} khoản đang chờ đồng bộ…
+        </div>
+      )}
+      <Outlet />
+      <TabBar />
+    </div>
+  );
+}

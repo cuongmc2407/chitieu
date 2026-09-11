@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { getOrCreateUser } from "../../domain/users.js";
 import * as sessionsRepo from "../../db/repos/sessions.js";
+import * as usersRepo from "../../db/repos/users.js";
 import { createSession, redeemPairingCode, SESSION_TTL_MS, verifyTelegramLogin, type TelegramLoginPayload } from "../../domain/auth.js";
 import { requireUser, SESSION_COOKIE_NAME } from "../plugins/auth.js";
 
@@ -88,6 +89,23 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     if (req.session) sessionsRepo.remove(app.deps.db, req.session.id);
     reply.clearCookie(SESSION_COOKIE_NAME, { path: "/" });
     return { ok: true };
+  });
+
+  app.get("/api/auth/me", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    return { id: user.id, name: user.name, username: user.username, reminderEnabled: user.reminderEnabled, monthlyBudget: user.monthlyBudget };
+  });
+
+  app.patch("/api/auth/me", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const parsed = z.object({ reminderEnabled: z.boolean().optional(), monthlyBudget: z.number().int().min(0).nullable().optional() }).safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "Dữ liệu không hợp lệ" });
+    if (parsed.data.reminderEnabled !== undefined) usersRepo.setReminderEnabled(app.deps.db, user.id, parsed.data.reminderEnabled);
+    if (parsed.data.monthlyBudget !== undefined) usersRepo.setMonthlyBudget(app.deps.db, user.id, parsed.data.monthlyBudget);
+    const updated = usersRepo.findById(app.deps.db, user.id)!;
+    return { id: updated.id, name: updated.name, username: updated.username, reminderEnabled: updated.reminderEnabled, monthlyBudget: updated.monthlyBudget };
   });
 
   app.get("/api/auth/sessions", async (req, reply) => {

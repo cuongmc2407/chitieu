@@ -38,3 +38,8 @@ export function deleteByKeyword(db: Db, userId: number, keyword: string): boolea
   const info = db.prepare("DELETE FROM keyword_overrides WHERE user_id = ? AND keyword = ?").run(userId, keyword);
   return info.changes > 0;
 }
+
+export function deleteById(db: Db, userId: number, id: number): boolean {
+  const info = db.prepare("DELETE FROM keyword_overrides WHERE user_id = ? AND id = ?").run(userId, id);
+  return info.changes > 0;
+}

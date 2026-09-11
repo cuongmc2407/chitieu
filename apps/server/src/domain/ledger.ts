@@ -200,3 +200,105 @@ export function undoLatest(db: Db, userId: number): TransactionRow | null {
 export function undoAllForMessage(db: Db, userId: number, telegramMessageId: number): number {
   return transactionsRepo.softDeleteAllByTelegramMessageId(db, userId, telegramMessageId);
 }
+
+export interface StructuredItemResult {
+  transaction: TransactionRow;
+  category: CategoryRow;
+}
+
+export interface CreateStructuredInput {
+  amount: number;
+  type: "expense" | "income";
+  categoryId: string;
+  note?: string;
+  occurredAt: string; // ISO
+}
+
+/**
+ * Creates a transaction from already-structured data (the web/app Quick
+ * Entry form, once the user picked a category) instead of free text.
+ * Idempotent on `clientId`, same as createFromText. Learns the note ->
+ * category mapping when `learn` is true (the user changed the category
+ * chip before saving).
+ */
+export function createStructured(
+  db: Db,
+  userId: number,
+  input: CreateStructuredInput,
+  opts: { source: TxSource; clientId: string; learn?: boolean },
+): StructuredItemResult | { error: "CATEGORY_NOT_FOUND" } {
+  const category = categoriesRepo.getById(db, userId, input.categoryId);
+  if (!category) return { error: "CATEGORY_NOT_FOUND" };
+
+  const note = input.note ?? "";
+  const run = db.transaction((): StructuredItemResult => {
+    const transaction =
+      transactionsRepo.findByClientId(db, userId, opts.clientId) ??
+      transactionsRepo.create(db, userId, {
+        amount: input.amount,
+        type: category.type,
+        categoryId: category.id,
+        note,
+        rawText: note,
+        occurredAt: input.occurredAt,
+        source: opts.source,
+        clientId: opts.clientId,
+      });
+
+    if (opts.learn) {
+      const key = overrideKey(note);
+      if (key) keywordOverridesRepo.upsert(db, userId, key, category.id);
+    }
+
+    return { transaction, category };
+  });
+
+  return run();
+}
+
+export interface UpdateTransactionInput {
+  amount?: number;
+  categoryId?: string;
+  note?: string;
+  occurredAt?: string;
+}
+
+/**
+ * PATCH /api/transactions/:id — partial update. `type` is never set
+ * directly; it always follows the (possibly new) category, so data can't
+ * drift into an expense category holding an income row or vice versa.
+ */
+export function updateTransaction(
+  db: Db,
+  userId: number,
+  id: string,
+  input: UpdateTransactionInput,
+  opts: { learn?: boolean } = {},
+): StructuredItemResult | null {
+  const existing = transactionsRepo.findById(db, userId, id);
+  if (!existing) return null;
+
+  const categoryId = input.categoryId ?? existing.categoryId;
+  const category = categoriesRepo.getById(db, userId, categoryId);
+  if (!category) return null;
+
+  const run = db.transaction((): StructuredItemResult | null => {
+    const updated = transactionsRepo.update(db, userId, id, {
+      categoryId,
+      type: category.type,
+      ...(input.amount !== undefined ? { amount: input.amount } : {}),
+      ...(input.note !== undefined ? { note: input.note, rawText: input.note } : {}),
+      ...(input.occurredAt !== undefined ? { occurredAt: input.occurredAt } : {}),
+    });
+    if (!updated) return null;
+
+    if (opts.learn && input.categoryId !== undefined) {
+      const key = overrideKey(updated.note);
+      if (key) keywordOverridesRepo.upsert(db, userId, key, categoryId);
+    }
+
+    return { transaction: updated, category };
+  });
+
+  return run();
+}

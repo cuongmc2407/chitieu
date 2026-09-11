@@ -27,8 +27,8 @@ export interface PeriodReport {
   dailyAverage: number;
 }
 
-/** Builds the data for a /tuan, /thang, or scheduled weekly/monthly report. `anchorYmd` is any date inside the period. */
-export function buildPeriodReport(db: Db, userId: number, kind: "week" | "month", anchorYmd: YMD, timeZone: string): PeriodReport {
+/** Builds the data for /tuan, /thang, GET /api/stats, or the scheduled weekly/monthly reports. `anchorYmd` is any date inside the period. */
+export function buildPeriodReport(db: Db, userId: number, kind: PeriodKind, anchorYmd: YMD, timeZone: string): PeriodReport {
   const period = rangeFor(kind, anchorYmd, timeZone);
   const prev = previousPeriod(period, kind, timeZone);
 

@@ -270,3 +270,51 @@ export function softDeleteAllByTelegramMessageId(db: Db, userId: number, telegra
     .run(now, now, userId, telegramMessageId);
   return info.changes;
 }
+
+export interface SearchOptions {
+  from?: string;
+  to?: string;
+  categoryId?: string;
+  /** Free-text search, matched against `note` (case/diacritic-insensitive substring). */
+  q?: string;
+  type?: TxType;
+}
+
+/** Used by GET /api/transactions — like listRange but with category/text filters, newest first. */
+export function search(db: Db, userId: number, opts: SearchOptions): TransactionRow[] {
+  const conditions = ["user_id = ?", "deleted_at IS NULL"];
+  const params: unknown[] = [userId];
+  if (opts.from) {
+    conditions.push("occurred_at >= ?");
+    params.push(opts.from);
+  }
+  if (opts.to) {
+    conditions.push("occurred_at < ?");
+    params.push(opts.to);
+  }
+  if (opts.categoryId) {
+    conditions.push("category_id = ?");
+    params.push(opts.categoryId);
+  }
+  if (opts.type) {
+    conditions.push("type = ?");
+    params.push(opts.type);
+  }
+  if (opts.q) {
+    conditions.push("note LIKE ? ESCAPE '\\'");
+    const escaped = opts.q.replace(/[\\%_]/g, (c) => `\\${c}`);
+    params.push(`%${escaped}%`);
+  }
+  const rows = db
+    .prepare(`SELECT ${SELECT_COLUMNS} FROM transactions WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC`)
+    .all(...params) as RawTxRow[];
+  return rows.map(mapTx);
+}
+
+/** Moves every (non-deleted) transaction from one category to another — used when a category is deleted. */
+export function reassignCategory(db: Db, userId: number, fromCategoryId: string, toCategoryId: string): number {
+  const info = db
+    .prepare("UPDATE transactions SET category_id = ?, updated_at = ? WHERE user_id = ? AND category_id = ?")
+    .run(toCategoryId, new Date().toISOString(), userId, fromCategoryId);
+  return info.changes;
+}

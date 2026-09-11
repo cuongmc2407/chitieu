@@ -155,6 +155,36 @@ export function setHidden(db: Db, userId: number, categoryId: string, hidden: bo
   );
 }
 
+export interface CategoryPatch {
+  name?: string;
+  emoji?: string;
+  keywords?: string[];
+  sortOrder?: number;
+  hidden?: boolean;
+}
+
+export function update(db: Db, userId: number, categoryId: string, patch: CategoryPatch): CategoryRow | undefined {
+  const existing = getById(db, userId, categoryId);
+  if (!existing) return undefined;
+  const next = { ...existing, ...patch };
+  db.prepare(
+    `UPDATE categories SET name = ?, emoji = ?, keywords = ?, sort_order = ?, hidden = ?, updated_at = ?
+     WHERE user_id = ? AND id = ?`,
+  ).run(next.name, next.emoji, JSON.stringify(next.keywords), next.sortOrder, next.hidden ? 1 : 0, new Date().toISOString(), userId, categoryId);
+  return getById(db, userId, categoryId);
+}
+
+export function findFallback(db: Db, userId: number, type: TxType): CategoryRow | undefined {
+  const rows = listByUser(db, userId, { includeHidden: true });
+  return rows.find((c) => c.isFallback && c.type === type);
+}
+
+/** Permanently deletes a category row. Callers must reassign its transactions first (see domain/categories.ts). */
+export function remove(db: Db, userId: number, categoryId: string): boolean {
+  const info = db.prepare("DELETE FROM categories WHERE user_id = ? AND id = ?").run(userId, categoryId);
+  return info.changes > 0;
+}
+
 /** Converts DB rows into the plain CategoryDef[] shape that @chitieu/core#parseMessage/categorize expect. */
 export function toCategoryDefs(rows: CategoryRow[]): CategoryDef[] {
   return rows.map((r) => ({

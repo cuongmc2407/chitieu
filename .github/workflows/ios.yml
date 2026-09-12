@@ -13,8 +13,6 @@ jobs:
 
       - name: Cài pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: "12"
 
       - name: Cài Node.js
         uses: actions/setup-node@v4

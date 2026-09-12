@@ -3,7 +3,15 @@ import { z } from "zod";
 import type { AppConfig } from "../config.js";
 import type { Logger } from "../logger.js";
 
-const LLM_TIMEOUT_MS = 2000;
+// This runs fully in the background, well after the bot has already
+// replied (see upgradeFallbackCategoriesWithLlm) — so it's fine to spend
+// real time here. Confirmed against a live ai-box.vn reasoning model
+// (deepseek-flash): it spent all 128 tokens on hidden `reasoning_content`
+// and returned empty `content` with finish_reason "length" before ever
+// writing the JSON answer. 1024 tokens gives it room to actually finish;
+// the timeout is raised to match how long that many tokens can take.
+const LLM_TIMEOUT_MS = 15000;
+const LLM_MAX_TOKENS = 1024;
 
 const ChatCompletionSchema = z.object({
   choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1),
@@ -30,7 +38,7 @@ export async function guessCategory(llm: AppConfig["llm"], note: string, categor
       body: JSON.stringify({
         model: llm.model,
         temperature: 0,
-        max_tokens: 30,
+        max_tokens: LLM_MAX_TOKENS,
         messages: [
           {
             role: "system",

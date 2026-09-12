@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   const scheduler = startScheduler(bot, deps);
 
   const app = await buildApp(deps, bot);
-  await app.listen({ port: config.port, host: "127.0.0.1" });
+  await app.listen({ port: config.port, host: config.serverHost });
   logger.info({ port: config.port }, "Server đã khởi động");
 
   if (config.botMode === "polling") {

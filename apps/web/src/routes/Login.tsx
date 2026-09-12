@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router";
 import { apiGet, apiPost } from "../lib/apiClient";
-import { getLoggedInFlag, setLoggedInFlag, setToken } from "../lib/auth";
+import { getLoggedInFlag, getServerUrl, setLoggedInFlag, setServerUrl, setToken } from "../lib/auth";
+import { isNative } from "../lib/native";
 
 declare global {
   interface Window {
@@ -18,6 +19,7 @@ export default function Login() {
   const widgetHostRef = useRef<HTMLDivElement>(null);
   const [botUsername, setBotUsername] = useState<string | null | undefined>(undefined);
   const [pairCode, setPairCode] = useState("");
+  const [serverUrl, setServerUrlState] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sessionCheck, setSessionCheck] = useState<"checking" | "logged-in" | "logged-out">("checking");
@@ -27,13 +29,21 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
+    if (isNative) getServerUrl().then(setServerUrlState);
+  }, []);
+
+  useEffect(() => {
+    // The Telegram Login Widget only works on the web (it's tied to a
+    // public domain via BotFather /setdomain) — the app always uses the
+    // pairing code instead, and has no server address to call yet anyway.
+    if (isNative) return;
     apiGet<PublicConfig>("/api/public-config")
       .then((c) => setBotUsername(c.botUsername))
       .catch(() => setBotUsername(null));
   }, []);
 
   useEffect(() => {
-    if (!botUsername || !widgetHostRef.current) return;
+    if (isNative || !botUsername || !widgetHostRef.current) return;
 
     window.onTelegramAuth = (user) => {
       setLoading(true);
@@ -61,7 +71,18 @@ export default function Login() {
     setLoading(true);
     setError(null);
     try {
-      const result = await apiPost<{ token?: string }>("/api/auth/pair", { code: pairCode, client: "web" });
+      if (isNative) {
+        const trimmed = serverUrl.trim();
+        if (!/^https?:\/\/.+/.test(trimmed)) {
+          setError("Địa chỉ server phải bắt đầu bằng http:// hoặc https://");
+          return;
+        }
+        // Persist before the request below — apiClient reads it per-call,
+        // so a stale/empty address here would send the request nowhere.
+        await setServerUrl(trimmed);
+        setServerUrlState(trimmed);
+      }
+      const result = await apiPost<{ token?: string }>("/api/auth/pair", { code: pairCode, client: isNative ? "ios" : "web" });
       if (result.token) await setToken(result.token);
       await setLoggedInFlag(true);
       navigate("/", { replace: true });
@@ -83,18 +104,36 @@ export default function Login() {
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Đăng nhập để xem, sửa và thống kê chi tiêu</p>
       </div>
 
-      <div className="flex min-h-11 items-center justify-center" ref={widgetHostRef}>
-        {botUsername === undefined && <p className="text-sm text-slate-400">Đang tải…</p>}
-        {botUsername === null && <p className="text-sm text-slate-400">Chưa cấu hình đăng nhập Telegram trên server.</p>}
-      </div>
+      {!isNative && (
+        <>
+          <div className="flex min-h-11 items-center justify-center" ref={widgetHostRef}>
+            {botUsername === undefined && <p className="text-sm text-slate-400">Đang tải…</p>}
+            {botUsername === null && <p className="text-sm text-slate-400">Chưa cấu hình đăng nhập Telegram trên server.</p>}
+          </div>
 
-      <div className="flex w-full max-w-xs items-center gap-3 text-slate-400">
-        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-        <span className="text-xs">hoặc dùng mã ghép nối</span>
-        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-      </div>
+          <div className="flex w-full max-w-xs items-center gap-3 text-slate-400">
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+            <span className="text-xs">hoặc dùng mã ghép nối</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+          </div>
+        </>
+      )}
 
       <form onSubmit={submitPairCode} className="flex w-full max-w-xs flex-col gap-3">
+        {isNative && (
+          <>
+            <label className="text-center text-xs text-slate-500 dark:text-slate-400">Địa chỉ server</label>
+            <input
+              value={serverUrl}
+              onChange={(e) => setServerUrlState(e.target.value)}
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              placeholder="https://chitieu.cuongmc.id.vn"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            />
+          </>
+        )}
         <label className="text-center text-xs text-slate-500 dark:text-slate-400">
           Gõ <code className="rounded bg-slate-200 px-1 py-0.5 dark:bg-slate-800">/ketnoi</code> trong bot để lấy mã 6 số
         </label>
@@ -107,7 +146,7 @@ export default function Login() {
         />
         <button
           type="submit"
-          disabled={loading || pairCode.length !== 6}
+          disabled={loading || pairCode.length !== 6 || (isNative && serverUrl.trim() === "")}
           className="rounded-xl bg-teal-600 px-4 py-3 font-medium text-white transition-opacity disabled:opacity-50"
         >
           Xác nhận mã

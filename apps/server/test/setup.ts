@@ -15,6 +15,7 @@ export function createTestConfig(overrides: Partial<AppConfig> = {}): AppConfig 
     allowedTelegramIds: new Set([111, 222]),
     publicUrl: undefined,
     port: 3333,
+    serverHost: "127.0.0.1",
     timeZone: "Asia/Ho_Chi_Minh",
     dbPath: ":memory:",
     botMode: "polling",

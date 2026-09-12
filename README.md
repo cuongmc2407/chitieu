@@ -97,10 +97,12 @@ curl http://127.0.0.1:3333/api/health
 docker compose -f deploy/docker-compose.yml logs -f chitieu
 ```
 
-Server chỉ nghe trên `127.0.0.1:3333` (không mở ra Internet trực tiếp) —
+Server chỉ được publish trên `127.0.0.1:3333` (không mở ra Internet trực tiếp) —
 xem [mục 6](#6-cloudflare-tunnel-https-công-khai) để có HTTPS công khai.
 Dữ liệu (SQLite + backup) nằm trong volume Docker `chitieu-data`, sống sót
-qua `docker compose down`/`up` và cập nhật image.
+qua `docker compose down`/`up` và cập nhật image. Các đường dẫn nội bộ của
+container được Compose đặt sẵn, nên không cần thay `DB_PATH`, `BACKUP_DIR`,
+hay `WEB_DIST_PATH` trong `.env` khi dùng Docker.
 
 **Cập nhật lên bản mới:**
 

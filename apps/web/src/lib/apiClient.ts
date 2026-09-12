@@ -42,7 +42,13 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (res.status === 204) return undefined as T;
   const contentType = res.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) return (await res.json()) as T;
-  return (await res.text()) as unknown as T;
+  // Every real endpoint returns JSON or 204. A 2xx response in any other
+  // content type means the request never reached the API — on iOS this
+  // happens when no server address is configured yet, and the request
+  // silently lands on the app's own bundled asset server (index.html)
+  // instead of erroring, which otherwise surfaces as a confusing crash
+  // several screens later.
+  throw new ApiError(res.status, "Không kết nối được tới server — kiểm tra địa chỉ server trong Cài đặt");
 }
 
 export function apiGet<T>(path: string): Promise<T> {

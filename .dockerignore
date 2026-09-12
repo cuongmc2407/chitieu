@@ -1,0 +1,15 @@
+# Dependencies are installed inside the image for the target Linux platform.
+node_modules
+**/node_modules
+
+# Local and generated files must not become part of the deploy image.
+.git
+.env
+**/.env
+*.log
+apps/server/data
+apps/server/backups
+apps/server/logs
+coverage
+dist
+**/dist

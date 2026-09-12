@@ -10,6 +10,9 @@ const EnvSchema = z.object({
   ALLOWED_TELEGRAM_IDS: z.string().min(1, "ALLOWED_TELEGRAM_IDS là bắt buộc (danh sách Telegram ID, cách nhau bởi dấu phẩy)"),
   PUBLIC_URL: z.string().url().optional(),
   PORT: z.coerce.number().int().positive().default(3333),
+  // Docker needs 0.0.0.0 so its published localhost port can reach the
+  // container. Direct/PM2 runs remain loopback-only by default.
+  SERVER_HOST: z.string().default("127.0.0.1"),
   TZ: z.string().default("Asia/Ho_Chi_Minh"),
   DB_PATH: z.string().default("./data/chitieu.db"),
   BOT_MODE: z.enum(["polling", "webhook"]).default("polling"),
@@ -53,6 +56,7 @@ export interface AppConfig {
   allowedTelegramIds: Set<number>;
   publicUrl?: string;
   port: number;
+  serverHost: string;
   timeZone: string;
   dbPath: string;
   botMode: "polling" | "webhook";
@@ -109,6 +113,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowedTelegramIds,
     publicUrl: parsed.PUBLIC_URL,
     port: parsed.PORT,
+    serverHost: parsed.SERVER_HOST,
     timeZone: parsed.TZ,
     dbPath: parsed.DB_PATH,
     botMode: parsed.BOT_MODE,

@@ -38,6 +38,7 @@ COPY --from=build /repo/apps/web/dist ./web-dist
 
 ENV NODE_ENV=production \
     PORT=3333 \
+    SERVER_HOST=0.0.0.0 \
     WEB_DIST_PATH=/app/web-dist \
     DB_PATH=/data/chitieu.db \
     BACKUP_DIR=/data/backups \

@@ -9,6 +9,14 @@ services:
     # Cùng một file .env dùng cho cả Docker và PM2 — xem apps/server/.env.example.
     env_file:
       - ../apps/server/.env
+    # These paths belong to the container and must override the relative
+    # development defaults from apps/server/.env.
+    environment:
+      SERVER_HOST: 0.0.0.0
+      WEB_DIST_PATH: /app/web-dist
+      DB_PATH: /data/chitieu.db
+      BACKUP_DIR: /data/backups
+      ACTUAL_DATA_DIR: /data/actual
     # Chỉ nghe trên localhost — không mở cổng nào ra Internet.
     # Cloudflare Tunnel (chạy trên host hoặc service bên dưới) trỏ vào đây.
     ports:

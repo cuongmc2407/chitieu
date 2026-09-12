@@ -2,7 +2,7 @@ import { addDays, dayRange, getZonedParts } from "@chitieu/core";
 import { Cron } from "croner";
 import type { Bot } from "grammy";
 import { InputFile } from "grammy";
-import { buildReportText } from "../bot/format.js";
+import { buildFixedCostPostedText, buildReportText } from "../bot/format.js";
 import type { BotContext } from "../bot/context.js";
 import type { BotDeps } from "../bot/deps.js";
 import * as notificationsSentRepo from "../db/repos/notificationsSent.js";
@@ -10,6 +10,7 @@ import * as transactionsRepo from "../db/repos/transactions.js";
 import * as usersRepo from "../db/repos/users.js";
 import { runActualSync } from "../domain/actualSync.js";
 import { createBackup, gzipFile } from "../domain/backup.js";
+import { postDueFixedCosts } from "../domain/fixedCosts.js";
 import { buildBudgetProgress, buildPeriodReport } from "../domain/reports.js";
 
 function pad2(n: number): string {
@@ -79,6 +80,17 @@ export async function runDailyReminders(bot: Bot<BotContext>, deps: BotDeps, now
   }
 }
 
+/** Writes this month's due fixed costs into the ledger, then tells each user what was added. */
+export async function runFixedCostsJob(bot: Bot<BotContext>, deps: BotDeps, now: Date = new Date()): Promise<void> {
+  for (const { user, posted } of postDueFixedCosts(deps.db, now, deps.config.timeZone)) {
+    try {
+      await bot.api.sendMessage(user.telegramId, buildFixedCostPostedText(posted), { parse_mode: "HTML" });
+    } catch (err) {
+      deps.logger.error({ err, userId: user.id }, "Không gửi được thông báo chi phí cố định");
+    }
+  }
+}
+
 /** Daily SQLite backup, pruned to the last N. Optionally gzips and sends a copy to a Telegram chat. */
 export async function runBackupJob(bot: Bot<BotContext>, deps: BotDeps): Promise<void> {
   try {
@@ -110,7 +122,12 @@ export function startScheduler(bot: Bot<BotContext>, deps: BotDeps): SchedulerHa
     new Cron(deps.config.monthlyReportCron, { timezone: deps.config.timeZone, protect: true, catch: true }, () => runMonthlyReports(bot, deps)),
     new Cron(deps.config.dailyReminderCron, { timezone: deps.config.timeZone, protect: true, catch: true }, () => runDailyReminders(bot, deps)),
     new Cron(deps.config.backup.cron, { timezone: deps.config.timeZone, protect: true, catch: true }, () => runBackupJob(bot, deps)),
+    new Cron(deps.config.fixedCostCron, { timezone: deps.config.timeZone, protect: true, catch: true }, () => runFixedCostsJob(bot, deps)),
   ];
+
+  // Catch up right away: a server that was down at the cron time — or a cost
+  // added while it was off — still gets written as soon as it comes back.
+  void runFixedCostsJob(bot, deps);
 
   let actualSyncTimer: NodeJS.Timeout | undefined;
   if (deps.config.actual.enabled) {

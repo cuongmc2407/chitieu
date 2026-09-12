@@ -7,6 +7,7 @@ import * as pairingCodesRepo from "../db/repos/pairingCodes.js";
 import * as transactionsRepo from "../db/repos/transactions.js";
 import * as usersRepo from "../db/repos/users.js";
 import { buildCsv } from "../domain/csv.js";
+import { listWithStatus } from "../domain/fixedCosts.js";
 import { undoLatest } from "../domain/ledger.js";
 import { buildBudgetProgress, buildPeriodReport } from "../domain/reports.js";
 import type { BotContext } from "./context.js";
@@ -14,6 +15,7 @@ import type { BotDeps } from "./deps.js";
 import {
   buildBudgetListText,
   buildCategoryListText,
+  buildFixedCostsText,
   buildHelpText,
   buildReportText,
   buildTodayText,
@@ -33,6 +35,7 @@ export const BOT_COMMANDS = [
   { command: "xoa", description: "Xóa khoản gần nhất" },
   { command: "danhmuc", description: "Xem danh mục" },
   { command: "ngansach", description: "Xem/đặt ngân sách" },
+  { command: "codinh", description: "Chi phí cố định hàng tháng" },
   { command: "nhacnho", description: "Bật/tắt nhắc nhở buổi tối" },
   { command: "ketnoi", description: "Lấy mã đăng nhập web/app" },
   { command: "xuat", description: "Xuất CSV chi tiêu tháng này" },
@@ -99,6 +102,12 @@ export function installCommands(bot: Bot<BotContext>, deps: BotDeps): void {
 
   bot.command("ngansach", async (ctx) => {
     await handleBudgetCommand(deps, ctx);
+  });
+
+  bot.command("codinh", async (ctx) => {
+    const now = new Date();
+    const items = listWithStatus(deps.db, ctx.user.id, now, deps.config.timeZone);
+    await ctx.reply(buildFixedCostsText(items, now, deps.config.timeZone), { parse_mode: "HTML" });
   });
 
   bot.command("nhacnho", async (ctx) => {

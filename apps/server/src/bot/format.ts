@@ -1,5 +1,6 @@
 import { formatCompact, formatVnd, getZonedParts, sameYMD, weekdayOf, type YMD } from "@chitieu/core";
 import { InlineKeyboard } from "grammy";
+import type { FixedCostStatus, PostedFixedCost } from "../domain/fixedCosts.js";
 import type { BudgetProgress, PeriodReport } from "../domain/reports.js";
 import type { LedgerItemResult } from "../domain/ledger.js";
 import type { CategoryRow } from "../db/repos/categories.js";
@@ -243,6 +244,44 @@ export function buildBudgetListText(categories: CategoryRow[], userMonthlyBudget
 }
 
 // ---------------------------------------------------------------------------
+// /codinh — fixed monthly costs
+// ---------------------------------------------------------------------------
+
+export function buildFixedCostsText(items: FixedCostStatus[], now: Date, timeZone: string): string {
+  if (items.length === 0) {
+    return ["🔁 <b>Chi phí cố định hàng tháng</b>", "Chưa khai báo khoản nào.", "", "Thêm ở tab <b>Cố định</b> trên web/app."].join("\n");
+  }
+
+  const lines = ["🔁 <b>Chi phí cố định hàng tháng</b>"];
+  for (const item of items) {
+    const emoji = item.category?.emoji ?? "❓";
+    const status = !item.cost.active
+      ? "⏸ tạm dừng"
+      : item.postedThisMonth
+        ? "✅ đã ghi"
+        : item.cost.autoPost
+          ? `⏳ ngày ${item.dueDay}`
+          : "✋ tự ghi tay";
+    lines.push(`${emoji} ${escapeHtml(item.cost.name)} · ${formatVnd(item.cost.amount)} · ${status}`);
+  }
+
+  const total = items.filter((i) => i.cost.active).reduce((sum, i) => sum + i.cost.amount, 0);
+  lines.push("", `Tổng cố định tháng ${getZonedParts(now, timeZone).month}: ${formatVnd(total)}`);
+  return lines.join("\n");
+}
+
+export function buildFixedCostPostedText(posted: PostedFixedCost[]): string {
+  const lines = ["🔁 <b>Đã tự ghi chi phí cố định</b>"];
+  let total = 0;
+  for (const p of posted) {
+    total += p.transaction.amount;
+    lines.push(`${p.category.emoji} ${escapeHtml(p.cost.name)} · ${formatVnd(p.transaction.amount)}`);
+  }
+  lines.push("", `Tổng: ${formatVnd(total)} — sai thì sửa hoặc xóa như khoản thường nhé.`);
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Budget alerts
 // ---------------------------------------------------------------------------
 
@@ -282,6 +321,7 @@ export function buildHelpText(): string {
     "/xoa — xóa khoản gần nhất",
     "/danhmuc — xem danh mục",
     "/ngansach — xem/đặt ngân sách",
+    "/codinh — chi phí cố định hàng tháng",
     "/nhacnho — bật/tắt nhắc nhở buổi tối",
     "/ketnoi — lấy mã đăng nhập web/app",
     "/xuat — xuất CSV chi tiêu tháng này",

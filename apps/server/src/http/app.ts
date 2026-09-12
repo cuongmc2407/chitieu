@@ -14,6 +14,7 @@ import authPlugin from "./plugins/auth.js";
 import authRoutes from "./routes/auth.js";
 import categoriesRoutes from "./routes/categories.js";
 import exportRoutes from "./routes/export.js";
+import fixedCostsRoutes from "./routes/fixedCosts.js";
 import keywordOverridesRoutes from "./routes/keywordOverrides.js";
 import parseRoutes from "./routes/parse.js";
 import publicConfigRoutes from "./routes/publicConfig.js";
@@ -66,6 +67,7 @@ export async function buildApp(deps: BotDeps, bot?: Bot<BotContext>): Promise<Fa
   await app.register(transactionsRoutes);
   await app.register(statsRoutes);
   await app.register(categoriesRoutes);
+  await app.register(fixedCostsRoutes);
   await app.register(keywordOverridesRoutes);
   await app.register(exportRoutes);
 

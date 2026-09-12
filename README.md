@@ -16,14 +16,15 @@ chung một server và một cơ sở dữ liệu, có thể ghi/xem chéo giữ
 8. [Đồng bộ Actual Budget (tùy chọn)](#8-đồng-bộ-actual-budget-tùy-chọn)
 9. [App iOS](#9-app-ios)
 10. [Cách dùng bot Telegram](#10-cách-dùng-bot-telegram)
-11. [Xử lý sự cố](#11-xử-lý-sự-cố)
+11. [Chi phí cố định hàng tháng](#11-chi-phí-cố-định-hàng-tháng)
+12. [Xử lý sự cố](#12-xử-lý-sự-cố)
 
 ## 1. Kiến trúc
 
 ```
 packages/core   bộ phân tích tin nhắn tiếng Việt (số tiền, ngày, danh mục) — dùng chung
 apps/server     Fastify (REST API) + grammY (bot Telegram) + SQLite, 1 process
-apps/web        React PWA — Nhập nhanh, Lịch sử, Báo cáo, Danh mục, Cài đặt
+apps/web        React PWA — Nhập nhanh, Lịch sử, Báo cáo, Cố định, Cài đặt
 apps/web/ios    Dự án Capacitor (SPM) — vỏ iOS bọc quanh web, build bằng GitHub Actions
 deploy/         Dockerfile, docker-compose.yml, ecosystem.config.cjs (PM2), cloudflared/
 ```
@@ -270,10 +271,30 @@ thiếu vài tính năng native (haptics, StatusBar theo giao diện).
 - Lệnh: `/homnay`, `/tuan`, `/thang` (báo cáo), `/xoa` (xóa khoản gần
   nhất, có nút khôi phục), `/danhmuc` (xem danh mục), `/ngansach` (đặt
   ngân sách — ví dụ `/ngansach ăn uống 3tr` hoặc `/ngansach tổng 10tr`),
-  `/nhacnho` (bật/tắt nhắc 21:30 nếu chưa ghi gì hôm đó), `/ketnoi` (lấy
-  mã 6 số để đăng nhập web/app), `/xuat` (xuất CSV), `/huongdan`.
+  `/codinh` (xem chi phí cố định hàng tháng), `/nhacnho` (bật/tắt nhắc
+  21:30 nếu chưa ghi gì hôm đó), `/ketnoi` (lấy mã 6 số để đăng nhập
+  web/app), `/xuat` (xuất CSV), `/huongdan`.
 
-## 11. Xử lý sự cố
+## 11. Chi phí cố định hàng tháng
+
+Tiền nhà, internet, bảo hiểm, gói cước… khai báo một lần ở tab **Cố định**
+trên web/app (tên khoản, số tiền, danh mục, **ngày trong tháng**), rồi mỗi
+tháng server tự ghi khoản đó vào sổ đúng ngày đến hạn — không phải nhớ,
+không phải gõ lại.
+
+- Job chạy theo `FIXED_COST_CRON` (mặc định 00:05 hằng ngày, theo `TZ`) và
+  chạy thêm một lần ngay lúc server khởi động, nên server có tắt qua đêm
+  thì bật lên vẫn ghi bù.
+- Ghi xong bot nhắn cho bạn danh sách vừa ghi. Khoản đó nằm trong sổ như
+  mọi khoản khác (sửa/xóa bình thường), kèm nhãn 🔁 để biết là tự động.
+- Chọn ngày 31 thì tháng ngắn hơn tự lùi về ngày cuối tháng (28/02, 30/04…).
+- Tắt **"Tự ghi vào sổ"** nếu chỉ muốn theo dõi tổng chi cố định nhưng vẫn
+  tự nhập tay. Tắt **"Đang áp dụng"** để tạm dừng mà không mất khai báo.
+- Thêm một khoản vào giữa tháng, **sau** ngày đến hạn, thì tháng đó không
+  bị ghi truy thu (coi như bạn đã tự nhập rồi) — tháng sau mới bắt đầu.
+- Xem nhanh trên Telegram bằng `/codinh`.
+
+## 12. Xử lý sự cố
 
 **Bot không trả lời:** kiểm tra `TELEGRAM_BOT_TOKEN` đúng, Telegram ID
 của bạn có trong `ALLOWED_TELEGRAM_IDS` (phân biệt số, không phải

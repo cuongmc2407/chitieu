@@ -7,6 +7,7 @@ import QuickEntry from "./routes/QuickEntry";
 const History = lazy(() => import("./routes/History"));
 const Reports = lazy(() => import("./routes/Reports"));
 const Categories = lazy(() => import("./routes/Categories"));
+const FixedCosts = lazy(() => import("./routes/FixedCosts"));
 const Settings = lazy(() => import("./routes/Settings"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,14 @@ const router = createBrowserRouter([
         element: (
           <LazyPage>
             <Reports />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "/fixed",
+        element: (
+          <LazyPage>
+            <FixedCosts />
           </LazyPage>
         ),
       },

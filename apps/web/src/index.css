@@ -6,6 +6,18 @@
 
 @theme {
   --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand ramp — teal-600 stays the anchor so the installed PWA's
+     theme-color and app icon keep matching the UI. */
+  --color-brand-50: #ecfdf7;
+  --color-brand-100: #d1faec;
+  --color-brand-200: #a7f3d9;
+  --color-brand-300: #6ee7c3;
+  --color-brand-400: #2fd0a5;
+  --color-brand-500: #14b88f;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
 }
 
 html {
@@ -16,6 +28,15 @@ body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  background-color: #f3f5f7;
+  color: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #070b14;
+    color: #f8fafc;
+  }
 }
 
 /* Safe-area helpers for the bottom tab bar / iOS notch. */
@@ -24,6 +45,43 @@ body {
 }
 .pt-safe {
   padding-top: env(safe-area-inset-top);
+}
+
+/* Amounts line up column-wise instead of jittering per digit. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(10%);
+    opacity: 0.5;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-sheet {
+  animation: sheet-in 0.18s ease-out;
+}
+.animate-fade {
+  animation: fade-in 0.15s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet,
+  .animate-fade {
+    animation: none;
+  }
 }
 
 ::-webkit-scrollbar {

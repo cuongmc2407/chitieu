@@ -26,6 +26,8 @@ const EnvSchema = z.object({
   WEEKLY_REPORT_CRON: z.string().default("0 20 * * 0"),
   MONTHLY_REPORT_CRON: z.string().default("0 8 1 * *"),
   DAILY_REMINDER_CRON: z.string().default("30 21 * * *"),
+  // Right after midnight: a cost due on the 5th lands early on the 5th.
+  FIXED_COST_CRON: z.string().default("5 0 * * *"),
 
   BARE_NUMBER_THRESHOLD: z.coerce.number().int().positive().default(1000),
 
@@ -65,6 +67,7 @@ export interface AppConfig {
   weeklyReportCron: string;
   monthlyReportCron: string;
   dailyReminderCron: string;
+  fixedCostCron: string;
   bareNumberThreshold: number;
   llm: { enabled: boolean; baseUrl: string; apiKey?: string; model?: string };
   actual: {
@@ -122,6 +125,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     weeklyReportCron: parsed.WEEKLY_REPORT_CRON,
     monthlyReportCron: parsed.MONTHLY_REPORT_CRON,
     dailyReminderCron: parsed.DAILY_REMINDER_CRON,
+    fixedCostCron: parsed.FIXED_COST_CRON,
     bareNumberThreshold: parsed.BARE_NUMBER_THRESHOLD,
     llm: { enabled: parsed.LLM_ENABLED, baseUrl: parsed.LLM_BASE_URL, apiKey: parsed.LLM_API_KEY, model: parsed.LLM_MODEL },
     actual: {

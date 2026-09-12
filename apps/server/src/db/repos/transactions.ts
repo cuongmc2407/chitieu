@@ -23,6 +23,8 @@ export interface TransactionRow {
   telegramReplyMessageId: number | null;
   itemIndex: number;
   actualSyncedAt: string | null;
+  /** Set when this row was written automatically from a monthly fixed cost. */
+  fixedCostId: string | null;
 }
 
 interface RawTxRow {
@@ -44,10 +46,12 @@ interface RawTxRow {
   telegram_reply_message_id: number | null;
   item_index: number;
   actual_synced_at: string | null;
+  fixed_cost_id: string | null;
 }
 
 const SELECT_COLUMNS = `id, rowid AS row_id, user_id, amount, type, category_id, note, raw_text, occurred_at, created_at,
-  updated_at, deleted_at, source, client_id, telegram_message_id, telegram_reply_message_id, item_index, actual_synced_at`;
+  updated_at, deleted_at, source, client_id, telegram_message_id, telegram_reply_message_id, item_index, actual_synced_at,
+  fixed_cost_id`;
 
 function mapTx(row: RawTxRow): TransactionRow {
   return {
@@ -69,6 +73,7 @@ function mapTx(row: RawTxRow): TransactionRow {
     telegramReplyMessageId: row.telegram_reply_message_id,
     itemIndex: row.item_index,
     actualSyncedAt: row.actual_synced_at,
+    fixedCostId: row.fixed_cost_id,
   };
 }
 
@@ -84,6 +89,7 @@ export interface CreateTxInput {
   telegramMessageId?: number | null;
   telegramReplyMessageId?: number | null;
   itemIndex?: number;
+  fixedCostId?: string | null;
 }
 
 export function create(db: Db, userId: number, input: CreateTxInput): TransactionRow {
@@ -92,8 +98,8 @@ export function create(db: Db, userId: number, input: CreateTxInput): Transactio
   db.prepare(
     `INSERT INTO transactions
       (id, user_id, amount, type, category_id, note, raw_text, occurred_at, created_at, updated_at,
-       source, client_id, telegram_message_id, telegram_reply_message_id, item_index)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       source, client_id, telegram_message_id, telegram_reply_message_id, item_index, fixed_cost_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     userId,
@@ -110,6 +116,7 @@ export function create(db: Db, userId: number, input: CreateTxInput): Transactio
     input.telegramMessageId ?? null,
     input.telegramReplyMessageId ?? null,
     input.itemIndex ?? 0,
+    input.fixedCostId ?? null,
   );
   const row = findById(db, userId, id);
   if (!row) throw new Error("Không tạo được giao dịch");

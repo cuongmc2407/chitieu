@@ -1,6 +1,7 @@
 import type { Db } from "../db/index.js";
 import * as categoriesRepo from "../db/repos/categories.js";
 import type { CategoryRow } from "../db/repos/categories.js";
+import * as fixedCostsRepo from "../db/repos/fixedCosts.js";
 import * as transactionsRepo from "../db/repos/transactions.js";
 
 export type DeleteCategoryResult = { ok: true; reassignedCount: number } | { ok: false; reason: "NOT_FOUND" | "IS_FALLBACK" };
@@ -20,6 +21,9 @@ export function deleteCategory(db: Db, userId: number, categoryId: string): Dele
 
   const run = db.transaction((): number => {
     const reassignedCount = fallback ? transactionsRepo.reassignCategory(db, userId, category.id, fallback.id) : 0;
+    // fixed_costs.category_id is a foreign key too — any row left pointing
+    // here would make the DELETE below fail outright.
+    if (fallback) fixedCostsRepo.reassignCategory(db, userId, category.id, fallback.id);
     categoriesRepo.remove(db, userId, category.id);
     return reassignedCount;
   });

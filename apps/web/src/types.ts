@@ -25,8 +25,27 @@ export interface Transaction {
   occurredAt: string;
   source: "telegram" | "web" | "ios";
   clientId: string;
+  /** Set when the row was written automatically from a monthly fixed cost. */
+  fixedCostId: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FixedCost {
+  id: string;
+  name: string;
+  amount: number;
+  categoryId: string;
+  categoryName: string | null;
+  categoryEmoji: string | null;
+  /** What the user picked (1–31). */
+  dayOfMonth: number;
+  /** Where that lands this month — 31 becomes 28/29/30 in shorter months. */
+  dueDay: number;
+  note: string;
+  autoPost: boolean;
+  active: boolean;
+  postedThisMonth: boolean;
 }
 
 export interface ParsedPreviewItem {

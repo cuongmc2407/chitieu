@@ -21,6 +21,7 @@ function toPublic(tx: TransactionRow, category: CategoryRow | undefined) {
     occurredAt: tx.occurredAt,
     source: tx.source,
     clientId: tx.clientId,
+    fixedCostId: tx.fixedCostId,
     createdAt: tx.createdAt,
     updatedAt: tx.updatedAt,
   };

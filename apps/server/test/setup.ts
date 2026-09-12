@@ -23,6 +23,7 @@ export function createTestConfig(overrides: Partial<AppConfig> = {}): AppConfig 
     weeklyReportCron: "0 20 * * 0",
     monthlyReportCron: "0 8 1 * *",
     dailyReminderCron: "30 21 * * *",
+    fixedCostCron: "5 0 * * *",
     bareNumberThreshold: 1000,
     llm: { enabled: false, baseUrl: "https://api.ai-box.vn/v1", apiKey: undefined, model: undefined },
     actual: {

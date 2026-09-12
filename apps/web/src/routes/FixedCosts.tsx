@@ -175,7 +175,7 @@ function FixedCostSheet({ cost, categories, onClose }: { cost?: FixedCost; categ
         </Field>
 
         <Field label="Danh mục">
-          <CategoryPicker categories={categories} selectedId={categoryId} onSelect={(c) => setCategoryId(c.id)} />
+          <CategoryPicker categories={categories} selectedId={categoryId} onSelect={(c) => setCategoryId(c.id)} wrap />
         </Field>
 
         <label className="flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-3 text-sm dark:bg-slate-800/60">

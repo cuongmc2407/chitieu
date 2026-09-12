@@ -135,7 +135,7 @@ function EditSheet({ tx, categories, onClose }: { tx: Transaction; categories: C
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú" className={inputClass} />
         </Field>
         <Field label="Danh mục">
-          <CategoryPicker categories={categories.filter((c) => !c.hidden)} selectedId={categoryId} onSelect={(c) => setCategoryId(c.id)} />
+          <CategoryPicker categories={categories.filter((c) => !c.hidden)} selectedId={categoryId} onSelect={(c) => setCategoryId(c.id)} wrap />
         </Field>
       </div>
       <div className="mt-4 flex gap-2">

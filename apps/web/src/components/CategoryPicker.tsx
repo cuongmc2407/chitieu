@@ -5,13 +5,19 @@ interface CategoryPickerProps {
   categories: Category[];
   selectedId: string | null;
   onSelect: (category: Category) => void;
+  /**
+   * Wrap onto several lines instead of scrolling sideways. Use it wherever
+   * picking the right category is the whole point of the screen (the edit
+   * sheets): a sideways-scrolling row hides most options behind a swipe,
+   * which a mouse can't even perform.
+   */
+  wrap?: boolean;
   className?: string;
 }
 
-/** Horizontally-scrolling row of category chips — used to eyeball/override the guessed category before saving. */
-export default function CategoryPicker({ categories, selectedId, onSelect, className }: CategoryPickerProps) {
+export default function CategoryPicker({ categories, selectedId, onSelect, wrap, className }: CategoryPickerProps) {
   return (
-    <div className={clsx("-mx-1 flex gap-2 overflow-x-auto px-1 pb-1", className)}>
+    <div className={clsx("flex gap-2", wrap ? "flex-wrap" : "-mx-1 overflow-x-auto px-1 pb-1", className)}>
       {categories.map((c) => (
         <button
           key={c.id}

@@ -64,7 +64,9 @@ export function Sheet({ onClose, title, children }: { onClose: () => void; title
   return (
     <div className="animate-fade fixed inset-0 z-30 flex items-end justify-center bg-slate-950/50 backdrop-blur-[2px]" onClick={onClose}>
       <div
-        className="animate-sheet pb-safe w-full max-w-lg rounded-t-3xl border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+        // Wrapped category chips can make a sheet taller than the screen —
+        // cap it and scroll inside so the save button stays reachable.
+        className="animate-sheet pb-safe max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-700" />

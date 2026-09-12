@@ -5,6 +5,11 @@ on:
     tags: ["v*"]
   workflow_dispatch: {}
 
+# Cần "contents: write" để đính .ipa vào GitHub Release (bước
+# softprops/action-gh-release) — mặc định GITHUB_TOKEN chỉ có quyền đọc.
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-26
